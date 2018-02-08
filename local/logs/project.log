@@ -1,0 +1,59 @@
+2018-02-08T09:04:54.882Z - normal: Load ~/.CocosCreator/settings.json
+2018-02-08T09:04:54.885Z - normal: checking language setting...
+2018-02-08T09:04:54.886Z - normal: Language: zh
+2018-02-08T09:04:55.468Z - success: protocol editor-framework registered
+2018-02-08T09:04:55.468Z - success: protocol app registered
+2018-02-08T09:04:55.468Z - success: protocol theme registered
+2018-02-08T09:04:55.468Z - success: protocol packages registered
+2018-02-08T09:04:55.468Z - success: protocol unpack registerred
+2018-02-08T09:04:55.469Z - success: protocol disable-commonjs registerred
+2018-02-08T09:04:55.609Z - normal: connected!
+2018-02-08T09:04:55.613Z - normal: Check project /Users/wangronghui/Desktop/TestNavigator
+2018-02-08T09:04:55.615Z - normal: Initializing Cocos2d
+2018-02-08T09:04:55.793Z - normal: Initializing Asset Database
+2018-02-08T09:04:55.819Z - success: protocol uuid registerred
+2018-02-08T09:04:55.819Z - success: protocol db registerred
+2018-02-08T09:04:55.819Z - success: protocol thumbnail registerred
+2018-02-08T09:04:55.820Z - normal: Loading editor/builtin packages
+2018-02-08T09:04:55.837Z - success: anysdk loaded
+2018-02-08T09:04:55.945Z - success: assets loaded
+2018-02-08T09:04:55.949Z - success: builder loaded
+2018-02-08T09:04:55.951Z - success: cocos-analytics loaded
+2018-02-08T09:04:55.955Z - success: console loaded
+2018-02-08T09:04:55.960Z - success: hierarchy loaded
+2018-02-08T09:04:55.964Z - success: inspector loaded
+2018-02-08T09:04:55.966Z - success: keystore loaded
+2018-02-08T09:04:55.970Z - success: node-library loaded
+2018-02-08T09:04:55.971Z - success: package-asset loaded
+2018-02-08T09:04:55.973Z - success: preferences loaded
+2018-02-08T09:04:55.977Z - success: project-exporter loaded
+2018-02-08T09:04:55.994Z - success: project-importer loaded
+2018-02-08T09:04:55.998Z - success: project-settings loaded
+2018-02-08T09:04:56.001Z - success: ui-kit loaded
+2018-02-08T09:04:56.005Z - success: ui-grid loaded
+2018-02-08T09:04:56.010Z - success: scene loaded
+2018-02-08T09:04:56.011Z - success: sprite-editor loaded
+2018-02-08T09:04:56.016Z - success: store loaded
+2018-02-08T09:04:56.021Z - success: timeline loaded
+2018-02-08T09:04:56.021Z - normal: Loading builtin packages
+2018-02-08T09:04:56.025Z - success: asset-db-debugger loaded
+2018-02-08T09:04:56.026Z - success: color-picker loaded
+2018-02-08T09:04:56.030Z - success: package-manager loaded
+2018-02-08T09:04:56.035Z - success: sdkbox loaded
+2018-02-08T09:04:56.039Z - success: tester loaded
+2018-02-08T09:04:56.043Z - success: ui-kit-preview-extra loaded
+2018-02-08T09:04:56.048Z - success: ui-kit-preview loaded
+2018-02-08T09:04:56.051Z - success: ui-tree loaded
+2018-02-08T09:04:56.973Z - normal: Initializing project /Users/wangronghui/Desktop/TestNavigator
+2018-02-08T09:04:56.975Z - normal: Loading packages
+2018-02-08T09:04:56.980Z - normal: Watching packages
+2018-02-08T09:04:56.991Z - normal: Run Application
+2018-02-08T09:04:57.662Z - success: preview server running at http://localhost:7457
+2018-02-08T09:05:01.903Z - normal: 1.8.0
+2018-02-08T09:05:02.424Z - normal: App.js - constructor
+2018-02-08T09:05:02.426Z - normal: Navigator.js - constructor
+2018-02-08T09:05:02.426Z - normal: App.js - constructor end
+2018-02-08T09:05:02.565Z - normal: Navigator.js - EVENT_AFTER_SCENE_LAUNCH sceneName = A
+2018-02-08T09:05:02.566Z - normal: Navigator.js - handleForward sceneName = A
+2018-02-08T09:05:02.566Z - normal: Navigator.js - handleForward parameter = null
+2018-02-08T09:05:02.566Z - normal: Navigator.js - handleForward sceneKey = Scene-1
