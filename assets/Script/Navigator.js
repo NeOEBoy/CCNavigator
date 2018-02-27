@@ -3,16 +3,24 @@
 const logger = require('Logger').getLogger('Navigator.js');
 
 /**
+ * 导航模式
+ * @type {{New: number, Back: number, Refresh: number}}
+ */
+const navigatorMode = {
+    New: 0,
+    Back: 1,
+    Refresh: 2
+};
+
+/**
  * Navigator介绍:
  * ------------------------
  * 提供一个支持导航栈的Navigator类，支持以下特性
  * 0，记录场景切换的导航栈。
  * 1，场景之间可以传递参数，比如场景A要传个字符串给场景B。
- * 2，多个场景进入同一场景后，从场景返回前一个场景，不需要再判断前一个场景是谁，可以直接goBack返回。
+ * 2，多个场景进入同一场景后，从场景返回前一个场景，不需要再判断前一个场景，可以直接goBack返回。
  * 3，支持场景返回后页面数据恢复，比如场景A界面，输入框输入了一段文字，然后进入场景B，
  *    从场景B返回后可以恢复输入框文字(需要在场景A脚本实现固定接口支持)。
- * 4，兼容cc.director.loadScene调用，当场景切换不需要参数和保存状态时，可以直接使用cc.director.loadScene
- *    Navigator会监听并将场景加入导航栈中。（不过不推荐直接使用cc.director.loadScene，没有以上特性）
  *
  * Navigator使用方法:
  * ------------------------
@@ -37,7 +45,7 @@ const logger = require('Logger').getLogger('Navigator.js');
  *      /// 切换成功处理
  *   });
  *
- *   ~如果有传递parameter需在相应B.js内部实现loadState(parameter, state)函数接收参数parameter。
+ *   ~如果有传递parameter需在相应B.js内部实现loadState(navigatorMode, parameter, state)函数接收参数parameter。
  *   ~如果要存储当前UI状态则实现saveState(state){ //将UI状态存储在参数state中,后续在loadState里恢复state }。
  *
  * c)场景B向后返回前一个场景A
@@ -219,7 +227,7 @@ class Navigator
         if(enterSceneJS){
             /// 向前导航时只有parameter，没有页面状态，所以页面状态为null
             if(typeof enterSceneJS.loadState === 'function'){
-                enterSceneJS.loadState(parameter, null);
+                enterSceneJS.loadState(navigatorMode.New, parameter, null);
             }
 
             /// 0，入导航栈
@@ -265,7 +273,22 @@ class Navigator
             if(typeof enterSceneJS.loadState === 'function'){
                 /// 如果Back有带参数，优先使用参数，否则使用保留参数。
                 parameter = parameter || sceneState.parameter;
-                enterSceneJS.loadState(parameter, sceneState.state);
+                enterSceneJS.loadState(navigatorMode.Back, parameter, sceneState.state);
+            }
+        }
+    }
+
+    /**
+     * 刷新页面处理
+     * @param {object} [parameter] -参数对象
+     */
+    handleRefresh(parameter){
+        logger.debug('handleRefresh');
+
+        let enterSceneJS = this.getCurrentSceneJS();
+        if(enterSceneJS){
+            if(typeof enterSceneJS.loadState === 'function'){
+                enterSceneJS.loadState(navigatorMode.Refresh, parameter, null);
             }
         }
     }
@@ -316,13 +339,20 @@ class Navigator
         let sceneName = locScenesStack[locScenesStack.length - 1];
         logger.debug('goBackToSceneStackLevel sceneName = ' + sceneName);
 
-        /// 加载栈顶Scene
-        cc.director.loadScene(sceneName, function () {
-            logger.debug('goBack loadScene complete sceneName = ' + sceneName);
+        let currentSceneName = cc.director.getScene().name;
+        logger.debug('goBackToSceneStackLevel currentSceneName = ' + currentSceneName);
 
-            this._sceneLaunchHandle = true;
-            this.handleBack(parameter);
-        }.bind(this));
+        if(currentSceneName !== sceneName){
+            /// 加载栈顶Scene
+            cc.director.loadScene(sceneName, function () {
+                logger.debug('goBack loadScene complete sceneName = ' + sceneName);
+
+                this._sceneLaunchHandle = true;
+                this.handleBack(parameter);
+            }.bind(this));
+        }else {
+            this.handleRefresh(parameter);
+        }
     }
 
     /**
@@ -354,4 +384,17 @@ class Navigator
     /*-------------------------私有方法end-------------------------*/
 }
 
-module.exports = new Navigator();
+module.exports = {
+    /**
+     * 导航模式
+     */
+    NavigatorMode: navigatorMode,
+
+    /**
+     * get Navigator
+     * @returns {Navigator}
+     */
+    getNavigator: function(){
+        return new Navigator();
+    }
+};
