@@ -5,14 +5,11 @@ class App
     constructor(){
         logger.log('constructor');
 
-        cc.wangronghui.navigator = require('Navigator');
+        cc.wangronghui.navigator = require('Navigator').getNavigator();
 
         logger.log('constructor end');
     }
-
 }
-
-
 
 /**
  * 当前环境设置为wangronghui
