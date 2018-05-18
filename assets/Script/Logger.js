@@ -176,7 +176,7 @@ class GameLog
             /// 转入Native处理
             let method = logLevelMethod[level];
             const ccNativeBridge = require('CCNativeBridge');
-            ccNativeBridge.invokeNativeMethod('LogHandler', method, `${this._tag} - ${info}`);
+            // ccNativeBridge.invokeNativeMethod('LogHandler', method, `${this._tag} - ${info}`);
         }
     }
 

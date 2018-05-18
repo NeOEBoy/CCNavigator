@@ -239,7 +239,7 @@ var GameLog = function () {
                 /// 转入Native处理
                 var method = logLevelMethod[level];
                 var ccNativeBridge = require('CCNativeBridge');
-                ccNativeBridge.invokeNativeMethod('LogHandler', method, this._tag + ' - ' + info);
+                // ccNativeBridge.invokeNativeMethod('LogHandler', method, `${this._tag} - ${info}`);
             }
         }
 

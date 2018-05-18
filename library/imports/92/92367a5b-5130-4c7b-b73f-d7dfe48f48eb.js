@@ -11,7 +11,7 @@ var App = function App() {
 
   logger.log('constructor');
 
-  cc.wangronghui.navigator = require('Navigator');
+  cc.wangronghui.navigator = require('Navigator').getNavigator();
 
   logger.log('constructor end');
 };

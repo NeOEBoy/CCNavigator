@@ -11,16 +11,24 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var logger = require('Logger').getLogger('Navigator.js');
 
 /**
+ * 导航模式
+ * @type {{New: number, Back: number, Refresh: number}}
+ */
+var navigatorMode = {
+    New: 0,
+    Back: 1,
+    Refresh: 2
+};
+
+/**
  * Navigator介绍:
  * ------------------------
  * 提供一个支持导航栈的Navigator类，支持以下特性
  * 0，记录场景切换的导航栈。
  * 1，场景之间可以传递参数，比如场景A要传个字符串给场景B。
- * 2，多个场景进入同一场景后，从场景返回前一个场景，不需要再判断前一个场景是谁，可以直接goBack返回。
+ * 2，多个场景进入同一场景后，从场景返回前一个场景，不需要再判断前一个场景，可以直接goBack返回。
  * 3，支持场景返回后页面数据恢复，比如场景A界面，输入框输入了一段文字，然后进入场景B，
  *    从场景B返回后可以恢复输入框文字(需要在场景A脚本实现固定接口支持)。
- * 4，兼容cc.director.loadScene调用，当场景切换不需要参数和保存状态时，可以直接使用cc.director.loadScene
- *    Navigator会监听并将场景加入导航栈中。（不过不推荐直接使用cc.director.loadScene，没有以上特性）
  *
  * Navigator使用方法:
  * ------------------------
@@ -45,7 +53,7 @@ var logger = require('Logger').getLogger('Navigator.js');
  *      /// 切换成功处理
  *   });
  *
- *   ~如果有传递parameter需在相应B.js内部实现loadState(parameter, state)函数接收参数parameter。
+ *   ~如果有传递parameter需在相应B.js内部实现loadState(navigatorMode, parameter, state)函数接收参数parameter。
  *   ~如果要存储当前UI状态则实现saveState(state){ //将UI状态存储在参数state中,后续在loadState里恢复state }。
  *
  * c)场景B向后返回前一个场景A
@@ -88,7 +96,7 @@ var Navigator = function () {
     function Navigator() {
         _classCallCheck(this, Navigator);
 
-        logger.debug('constructor');
+        logger.info('constructor');
 
         this._allState = new Map();
         this._scenesStack = [];
@@ -106,7 +114,14 @@ var Navigator = function () {
 
             /// 获取当前场景
             var sceneName = eventCustom.detail.name;
-            logger.debug('EVENT_AFTER_SCENE_LAUNCH sceneName = ' + sceneName);
+            logger.info('EVENT_AFTER_SCENE_LAUNCH sceneName = ' + sceneName);
+
+            /// 先检查下导航栈有没有该场景，如果有，则回退到相应场景，防止出现场景循环
+            var level = this.sceneStackLevel(sceneName);
+            if (level !== -1) {
+                this.goBackToSceneStackLevel(level, null);
+                return;
+            }
 
             this.handleForward(sceneName, null);
         }.bind(this));
@@ -123,9 +138,9 @@ var Navigator = function () {
     _createClass(Navigator, [{
         key: 'navigate',
         value: function navigate(sceneName, parameter, onSceneLaunched) {
-            logger.debug('navigate sceneName = ' + sceneName);
-            logger.debug('navigate parameter = ' + parameter);
-            logger.debug('navigate onSceneLaunched = ' + onSceneLaunched);
+            logger.info('navigate sceneName = ' + sceneName);
+            logger.log('navigate parameter = ' + parameter);
+            logger.log('navigate onSceneLaunched = ' + onSceneLaunched);
 
             /// 可能parameter和onSceneLaunched只传了某一个
             var argsLength = arguments.length;
@@ -151,13 +166,13 @@ var Navigator = function () {
                 sceneState.state = state;
 
                 if (typeof readyToLeaveSceneJS.saveState === 'function') {
-                    readyToLeaveSceneJS.saveState(state);
+                    readyToLeaveSceneJS.saveState.call(readyToLeaveSceneJS, state);
                 }
             }
 
             cc.director.loadScene(sceneName, function () {
                 /// 加载新场景成功处理
-                logger.debug('navigate loadScene complete sceneName = ' + sceneName);
+                logger.log('navigate loadScene complete sceneName = ' + sceneName);
 
                 this._sceneLaunchHandle = true;
                 this.handleForward(sceneName, parameter);
@@ -168,7 +183,7 @@ var Navigator = function () {
                 }
             }.bind(this));
 
-            logger.debug('navigate end');
+            logger.log('navigate end');
         }
 
         /**
@@ -179,15 +194,16 @@ var Navigator = function () {
     }, {
         key: 'goBack',
         value: function goBack(parameter) {
-            logger.debug('goBack');
+            logger.log('goBack');
 
             /// 当前Scene出导航栈
             this._scenesStack.pop();
 
             /// 加载栈顶Scene
             var sceneName = this._scenesStack[this._scenesStack.length - 1];
+            logger.info('goBack to sceneName = ' + sceneName);
             cc.director.loadScene(sceneName, function () {
-                logger.debug('goBack loadScene complete sceneName = ' + sceneName);
+                logger.log('goBack loadScene complete sceneName = ' + sceneName);
 
                 this._sceneLaunchHandle = true;
                 this.handleBack(parameter);
@@ -202,7 +218,7 @@ var Navigator = function () {
     }, {
         key: 'goBackToRootScene',
         value: function goBackToRootScene(parameter) {
-            logger.debug('goBackToRootScene');
+            logger.log('goBackToRootScene');
 
             this.goBackToSceneStackLevel(1, parameter);
         }
@@ -216,7 +232,7 @@ var Navigator = function () {
     }, {
         key: 'goBackToScene',
         value: function goBackToScene(sceneName, parameter) {
-            logger.debug('goBackToScene sceneName = ' + sceneName);
+            logger.log('goBackToScene sceneName = ' + sceneName);
 
             var level = this.sceneStackLevel(sceneName);
 
@@ -236,19 +252,21 @@ var Navigator = function () {
     }, {
         key: 'handleForward',
         value: function handleForward(sceneName, parameter) {
-            logger.debug('handleForward sceneName = ' + sceneName);
-            logger.debug('handleForward parameter = ' + parameter);
+            logger.info('handleForward sceneName = ' + sceneName);
+            logger.info('handleForward parameter = ' + parameter);
+
+            /// 0，入导航栈
+            if (sceneName) {
+                this._scenesStack.push(sceneName);
+            }
 
             /// 加载新场景成功处理
             var enterSceneJS = this.getCurrentSceneJS();
             if (enterSceneJS) {
                 /// 向前导航时只有parameter，没有页面状态，所以页面状态为null
                 if (typeof enterSceneJS.loadState === 'function') {
-                    enterSceneJS.loadState(parameter, null);
+                    enterSceneJS.loadState.call(enterSceneJS, navigatorMode.New, parameter, null);
                 }
-
-                /// 0，入导航栈
-                this._scenesStack.push(sceneName);
 
                 /// 1，由于后退时不清理状态，在这里将当前页面以及向前所有的状态清除
                 var nextSceneKey = 'Scene-' + this._scenesStack.length;
@@ -261,7 +279,7 @@ var Navigator = function () {
                 /// 2，设置个state给当前Scene
                 var sceneState = {};
                 var sceneKey = 'Scene-' + this._scenesStack.length;
-                logger.debug('handleForward sceneKey = ' + sceneKey);
+                logger.log('handleForward sceneKey = ' + sceneKey);
                 this._allState.set(sceneKey, sceneState);
 
                 /// 3，记录下参数
@@ -279,20 +297,38 @@ var Navigator = function () {
     }, {
         key: 'handleBack',
         value: function handleBack(parameter) {
-            logger.debug('handleBack');
+            logger.info('handleBack');
 
             /// 加载新场景成功处理
             var enterSceneJS = this.getCurrentSceneJS();
             if (enterSceneJS) {
                 var sceneKey = 'Scene-' + this._scenesStack.length;
-                logger.debug('goBack loadScene complete sceneKey = ' + sceneKey);
+                logger.log('handleBack sceneKey = ' + sceneKey);
                 var sceneState = this._allState.get(sceneKey);
 
                 /// 获取参数和页面状态，传入场景js,用于场景页面恢复
                 if (typeof enterSceneJS.loadState === 'function') {
                     /// 如果Back有带参数，优先使用参数，否则使用保留参数。
                     parameter = parameter || sceneState.parameter;
-                    enterSceneJS.loadState(parameter, sceneState.state);
+                    enterSceneJS.loadState.call(enterSceneJS, navigatorMode.Back, parameter, sceneState.state);
+                }
+            }
+        }
+
+        /**
+         * 刷新页面处理
+         * @param {object} [parameter] -参数对象
+         */
+
+    }, {
+        key: 'handleRefresh',
+        value: function handleRefresh(parameter) {
+            logger.info('handleRefresh');
+
+            var enterSceneJS = this.getCurrentSceneJS();
+            if (enterSceneJS) {
+                if (typeof enterSceneJS.loadState === 'function') {
+                    enterSceneJS.loadState.call(enterSceneJS, navigatorMode.Refresh, parameter, null);
                 }
             }
         }
@@ -327,7 +363,7 @@ var Navigator = function () {
     }, {
         key: 'goBackToSceneStackLevel',
         value: function goBackToSceneStackLevel(level, parameter) {
-            logger.debug('goBackToSceneStackLevel');
+            logger.info('goBackToSceneStackLevel');
 
             var locScenesStack = this._scenesStack;
             var c = locScenesStack.length;
@@ -346,15 +382,22 @@ var Navigator = function () {
             }
 
             var sceneName = locScenesStack[locScenesStack.length - 1];
-            logger.debug('goBackToSceneStackLevel sceneName = ' + sceneName);
+            logger.info('goBackToSceneStackLevel sceneName = ' + sceneName);
 
-            /// 加载栈顶Scene
-            cc.director.loadScene(sceneName, function () {
-                logger.debug('goBack loadScene complete sceneName = ' + sceneName);
+            var currentSceneName = cc.director.getScene().name;
+            logger.info('goBackToSceneStackLevel currentSceneName = ' + currentSceneName);
 
-                this._sceneLaunchHandle = true;
-                this.handleBack(parameter);
-            }.bind(this));
+            if (currentSceneName !== sceneName) {
+                /// 加载栈顶Scene
+                cc.director.loadScene(sceneName, function () {
+                    logger.log('goBackToSceneStackLevel loadScene complete sceneName = ' + sceneName);
+
+                    this._sceneLaunchHandle = true;
+                    this.handleBack(parameter);
+                }.bind(this));
+            } else {
+                this.handleRefresh(parameter);
+            }
         }
 
         /**
@@ -365,7 +408,7 @@ var Navigator = function () {
     }, {
         key: 'sceneStackLevel',
         value: function sceneStackLevel(sceneName) {
-            logger.debug('sceneStackLevel sceneName = ' + sceneName);
+            logger.log('sceneStackLevel sceneName = ' + sceneName);
 
             var locScenesStack = this._scenesStack;
 
@@ -378,7 +421,7 @@ var Navigator = function () {
                 }
             }
 
-            logger.debug('sceneStackLevel i = ' + i);
+            logger.log('sceneStackLevel i = ' + i);
 
             if (exist) {
                 return i + 1;
@@ -393,6 +436,19 @@ var Navigator = function () {
     return Navigator;
 }();
 
-module.exports = new Navigator();
+module.exports = {
+    /**
+     * 导航模式
+     */
+    NavigatorMode: navigatorMode,
+
+    /**
+     * get Navigator
+     * @returns {Navigator}
+     */
+    getNavigator: function getNavigator() {
+        return new Navigator();
+    }
+};
 
 cc._RF.pop();

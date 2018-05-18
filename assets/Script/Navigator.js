@@ -86,7 +86,7 @@ class Navigator
      * 构造方法
      */
     constructor(){
-        logger.debug('constructor');
+        logger.info('constructor');
 
         this._allState = new Map();
         this._scenesStack = [];
@@ -104,7 +104,14 @@ class Navigator
 
             /// 获取当前场景
             let sceneName = eventCustom.detail.name;
-            logger.debug('EVENT_AFTER_SCENE_LAUNCH sceneName = ' + sceneName);
+            logger.info('EVENT_AFTER_SCENE_LAUNCH sceneName = ' + sceneName);
+
+            /// 先检查下导航栈有没有该场景，如果有，则回退到相应场景，防止出现场景循环
+            let level = this.sceneStackLevel(sceneName);
+            if(level !== -1){
+                this.goBackToSceneStackLevel(level, null);
+                return;
+            }
 
             this.handleForward(sceneName, null);
         }.bind(this));
@@ -117,9 +124,9 @@ class Navigator
      * @param {function()} [onSceneLaunched] -新场景运行成功后回调
      */
     navigate(sceneName, parameter, onSceneLaunched){
-        logger.debug('navigate sceneName = ' + sceneName);
-        logger.debug('navigate parameter = ' + parameter);
-        logger.debug('navigate onSceneLaunched = ' + onSceneLaunched);
+        logger.info('navigate sceneName = ' + sceneName);
+        logger.log('navigate parameter = ' + parameter);
+        logger.log('navigate onSceneLaunched = ' + onSceneLaunched);
 
         /// 可能parameter和onSceneLaunched只传了某一个
         let argsLength = arguments.length;
@@ -145,13 +152,13 @@ class Navigator
             sceneState.state = state;
 
             if(typeof readyToLeaveSceneJS.saveState === 'function'){
-                readyToLeaveSceneJS.saveState(state);
+                readyToLeaveSceneJS.saveState.call(readyToLeaveSceneJS, state);
             }
         }
 
         cc.director.loadScene(sceneName, function () {
             /// 加载新场景成功处理
-            logger.debug('navigate loadScene complete sceneName = ' + sceneName);
+            logger.log('navigate loadScene complete sceneName = ' + sceneName);
 
             this._sceneLaunchHandle = true;
             this.handleForward(sceneName, parameter);
@@ -162,7 +169,7 @@ class Navigator
             }
         }.bind(this));
 
-        logger.debug('navigate end');
+        logger.log('navigate end');
     }
 
     /**
@@ -170,15 +177,16 @@ class Navigator
      * @param {object} [parameter] -参数对象
      */
     goBack(parameter){
-        logger.debug('goBack');
+        logger.log('goBack');
 
         /// 当前Scene出导航栈
         this._scenesStack.pop();
 
         /// 加载栈顶Scene
         let sceneName = this._scenesStack[this._scenesStack.length - 1];
+        logger.info('goBack to sceneName = ' + sceneName);
         cc.director.loadScene(sceneName, function () {
-            logger.debug('goBack loadScene complete sceneName = ' + sceneName);
+            logger.log('goBack loadScene complete sceneName = ' + sceneName);
 
             this._sceneLaunchHandle = true;
             this.handleBack(parameter);
@@ -190,7 +198,7 @@ class Navigator
      * @param {object} [parameter] -参数对象
      */
     goBackToRootScene(parameter){
-        logger.debug('goBackToRootScene');
+        logger.log('goBackToRootScene');
 
         this.goBackToSceneStackLevel(1, parameter);
     }
@@ -201,7 +209,7 @@ class Navigator
      * @param {object} [parameter] -参数对象
      */
     goBackToScene(sceneName, parameter){
-        logger.debug('goBackToScene sceneName = ' + sceneName);
+        logger.log('goBackToScene sceneName = ' + sceneName);
 
         let level = this.sceneStackLevel(sceneName);
 
@@ -219,19 +227,21 @@ class Navigator
      * @param {object} [parameter] -参数对象
      */
     handleForward(sceneName, parameter){
-        logger.debug('handleForward sceneName = ' + sceneName);
-        logger.debug('handleForward parameter = ' + parameter);
+        logger.info('handleForward sceneName = ' + sceneName);
+        logger.info('handleForward parameter = ' + parameter);
+
+        /// 0，入导航栈
+        if(sceneName){
+            this._scenesStack.push(sceneName);
+        }
 
         /// 加载新场景成功处理
         let enterSceneJS = this.getCurrentSceneJS();
         if(enterSceneJS){
             /// 向前导航时只有parameter，没有页面状态，所以页面状态为null
             if(typeof enterSceneJS.loadState === 'function'){
-                enterSceneJS.loadState(navigatorMode.New, parameter, null);
+                enterSceneJS.loadState.call(enterSceneJS, navigatorMode.New, parameter, null);
             }
-
-            /// 0，入导航栈
-            this._scenesStack.push(sceneName);
 
             /// 1，由于后退时不清理状态，在这里将当前页面以及向前所有的状态清除
             let nextSceneKey =  'Scene-' + this._scenesStack.length;
@@ -245,7 +255,7 @@ class Navigator
             /// 2，设置个state给当前Scene
             let sceneState = {};
             let sceneKey = 'Scene-' + this._scenesStack.length;
-            logger.debug('handleForward sceneKey = ' + sceneKey);
+            logger.log('handleForward sceneKey = ' + sceneKey);
             this._allState.set(sceneKey, sceneState);
 
             /// 3，记录下参数
@@ -260,20 +270,20 @@ class Navigator
      * @param {object} [parameter] -参数对象
      */
     handleBack(parameter){
-        logger.debug('handleBack');
+        logger.info('handleBack');
 
         /// 加载新场景成功处理
         let enterSceneJS = this.getCurrentSceneJS();
         if(enterSceneJS){
             let sceneKey = 'Scene-' + this._scenesStack.length;
-            logger.debug('goBack loadScene complete sceneKey = ' + sceneKey);
+            logger.log('handleBack sceneKey = ' + sceneKey);
             let sceneState = this._allState.get(sceneKey);
 
             /// 获取参数和页面状态，传入场景js,用于场景页面恢复
             if(typeof enterSceneJS.loadState === 'function'){
                 /// 如果Back有带参数，优先使用参数，否则使用保留参数。
                 parameter = parameter || sceneState.parameter;
-                enterSceneJS.loadState(navigatorMode.Back, parameter, sceneState.state);
+                enterSceneJS.loadState.call(enterSceneJS, navigatorMode.Back, parameter, sceneState.state);
             }
         }
     }
@@ -283,12 +293,12 @@ class Navigator
      * @param {object} [parameter] -参数对象
      */
     handleRefresh(parameter){
-        logger.debug('handleRefresh');
+        logger.info('handleRefresh');
 
         let enterSceneJS = this.getCurrentSceneJS();
         if(enterSceneJS){
             if(typeof enterSceneJS.loadState === 'function'){
-                enterSceneJS.loadState(navigatorMode.Refresh, parameter, null);
+                enterSceneJS.loadState.call(enterSceneJS, navigatorMode.Refresh, parameter, null);
             }
         }
     }
@@ -317,7 +327,7 @@ class Navigator
      * @param {object} [parameter] -参数对象
      */
     goBackToSceneStackLevel(level, parameter){
-        logger.debug('goBackToSceneStackLevel');
+        logger.info('goBackToSceneStackLevel');
 
         let locScenesStack = this._scenesStack;
         let c = locScenesStack.length;
@@ -337,15 +347,15 @@ class Navigator
         }
 
         let sceneName = locScenesStack[locScenesStack.length - 1];
-        logger.debug('goBackToSceneStackLevel sceneName = ' + sceneName);
+        logger.info('goBackToSceneStackLevel sceneName = ' + sceneName);
 
         let currentSceneName = cc.director.getScene().name;
-        logger.debug('goBackToSceneStackLevel currentSceneName = ' + currentSceneName);
+        logger.info('goBackToSceneStackLevel currentSceneName = ' + currentSceneName);
 
         if(currentSceneName !== sceneName){
             /// 加载栈顶Scene
             cc.director.loadScene(sceneName, function () {
-                logger.debug('goBack loadScene complete sceneName = ' + sceneName);
+                logger.log('goBackToSceneStackLevel loadScene complete sceneName = ' + sceneName);
 
                 this._sceneLaunchHandle = true;
                 this.handleBack(parameter);
@@ -360,7 +370,7 @@ class Navigator
      * @param {string} sceneName -场景名字
      */
     sceneStackLevel(sceneName){
-        logger.debug('sceneStackLevel sceneName = ' + sceneName);
+        logger.log('sceneStackLevel sceneName = ' + sceneName);
 
         let locScenesStack = this._scenesStack;
 
@@ -373,7 +383,7 @@ class Navigator
             }
         }
 
-        logger.debug('sceneStackLevel i = ' + i);
+        logger.log('sceneStackLevel i = ' + i);
 
         if(exist){
             return i+1;
